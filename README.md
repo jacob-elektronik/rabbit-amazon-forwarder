@@ -1,6 +1,6 @@
 # RabbitMQ -> Amazon forwarder
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/AirHelp/rabbit-amazon-forwarder)](https://goreportcard.com/report/github.com/AirHelp/rabbit-amazon-forwarder)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jacob-elektronik/rabbit-amazon-forwarder)](https://goreportcard.com/report/github.com/jacob-elektronik/rabbit-amazon-forwarder)
 
 Application to forward messages from RabbitMQ to different Amazon services.
 
@@ -24,7 +24,7 @@ The list of RabbitMQ sources and corresponding AWS target resources are stored i
 
 ### Mapping file
 
-Sample of RabbitMQ -> SNS mapping file. All fields are required. Samples are located in [examples](https://github.com/AirHelp/rabbit-amazon-forwarder/tree/master/examples) directory.
+Sample of RabbitMQ -> SNS mapping file. All fields are required. Samples are located in [examples](https://github.com/jacob-elektronik/rabbit-amazon-forwarder/tree/master/examples) directory.
 ```json
 [
   {

@@ -1,6 +1,6 @@
 FROM golang:1.13.0-alpine
 
-WORKDIR /go/src/github.com/AirHelp/rabbit-amazon-forwarder
+WORKDIR /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder
 
 RUN echo "asd"
 

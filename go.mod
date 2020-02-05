@@ -1,4 +1,4 @@
-module github.com/AirHelp/rabbit-amazon-forwarder
+module github.com/jacob-elektronik/rabbit-amazon-forwarder
 
 go 1.13
 

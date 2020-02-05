@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/AirHelp/rabbit-amazon-forwarder/config"
-	"github.com/AirHelp/rabbit-amazon-forwarder/forwarder"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
 )
 
 var badRequest = "Bad request"
