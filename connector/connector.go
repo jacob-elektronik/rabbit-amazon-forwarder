@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/AirHelp/rabbit-amazon-forwarder/config"
+	"github.com/aws/aws-sdk-go/aws/session"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/streadway/amqp"
@@ -139,4 +140,16 @@ func CreateConnector(connectionURL string) RabbitConnector {
 	} else {
 		return CreateBasicRabbitConnector()
 	}
+}
+
+
+func CreateAWSSession() (sess *session.Session) {
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		sess = session.Must(session.NewSession())
+	} else {
+		sess = session.Must(session.NewSessionWithOptions(session.Options{
+			SharedConfigState: session.SharedConfigEnable,
+		}))
+	}
+	return sess
 }

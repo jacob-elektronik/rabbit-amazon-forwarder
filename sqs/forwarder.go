@@ -2,12 +2,13 @@ package sqs
 
 import (
 	"errors"
+
+	"github.com/AirHelp/rabbit-amazon-forwarder/connector"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/AirHelp/rabbit-amazon-forwarder/config"
 	"github.com/AirHelp/rabbit-amazon-forwarder/forwarder"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
@@ -30,7 +31,7 @@ func CreateForwarder(entry config.AmazonEntry, sqsClient ...sqsiface.SQSAPI) for
 	if len(sqsClient) > 0 {
 		client = sqsClient[0]
 	} else {
-		client = sqs.New(session.Must(session.NewSession()))
+		client = sqs.New(connector.CreateAWSSession())
 	}
 	forwarder := Forwarder{entry.Name, client, entry.Target}
 	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")
