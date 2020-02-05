@@ -30,6 +30,7 @@ type Consumer struct {
 	ExchangeName    string
 	QueueName       string
 	RoutingKeys     []string
+	RabbitConfig    config.RabbitEntry
 	RabbitConnector connector.RabbitConnector
 }
 
@@ -45,11 +46,19 @@ type workerParams struct {
 
 // CreateConsumer creates consumer from string map
 func CreateConsumer(entry config.RabbitEntry, rabbitConnector connector.RabbitConnector) consumer.Client {
-    // merge RoutingKey with RoutingKeys
-    if entry.RoutingKey != "" {
-    	entry.RoutingKeys = append(entry.RoutingKeys, entry.RoutingKey)
-    }
-	return Consumer{entry.Name, entry.ConnectionURL, entry.ExchangeName, entry.QueueName, entry.RoutingKeys, rabbitConnector}
+	// merge RoutingKey with RoutingKeys
+	if entry.RoutingKey != "" {
+		entry.RoutingKeys = append(entry.RoutingKeys, entry.RoutingKey)
+	}
+	return Consumer{
+		name:            entry.Name,
+		ConnectionURL:   entry.ConnectionURL,
+		ExchangeName:    entry.ExchangeName,
+		QueueName:       entry.QueueName,
+		RoutingKeys:     entry.RoutingKeys,
+		RabbitConnector: rabbitConnector,
+		RabbitConfig:    entry,
+	}
 }
 
 // Name consumer name
@@ -92,12 +101,18 @@ func closeRabbitMQ(conn *amqp.Connection, ch *amqp.Channel) {
 	}
 }
 
-func (c Consumer) initRabbitMQ() (<-chan amqp.Delivery, *amqp.Connection, *amqp.Channel, error) {
-	_, connection, channel, err := c.connect()
+func (c Consumer) initRabbitMQ() (delivery <-chan amqp.Delivery, connection *amqp.Connection, channel *amqp.Channel, err error) {
+	_, connection, channel, err = c.connect()
 	if err != nil {
 		return nil, connection, channel, err
 	}
-	delivery, _, _, err := c.setupExchangesAndQueues(connection, channel)
+
+	if c.RabbitConfig.BindOnly {
+		delivery, _, _, err = c.setupQueuesAndBindings(connection, channel)
+	} else {
+		delivery, _, _, err = c.setupExchangesAndQueues(connection, channel)
+	}
+
 	return delivery, connection, channel, err
 }
 
@@ -113,6 +128,29 @@ func (c Consumer) connect() (<-chan amqp.Delivery, *amqp.Connection, *amqp.Chann
 	return nil, conn, ch, nil
 }
 
+func (c Consumer) setupQueuesAndBindings(conn *amqp.Connection, ch *amqp.Channel) (<-chan amqp.Delivery, *amqp.Connection, *amqp.Channel, error) {
+	var err error
+
+	queueName := fmt.Sprintf("%s-forwarder", c.QueueName)
+
+	// declare forwarding queue
+	if _, err = ch.QueueDeclare(queueName, true, false, false, false, nil); err != nil {
+		return failOnError(err, "Failed to declare a queue:"+queueName)
+	}
+
+	for _, rConf := range c.RabbitConfig.ExchangeConfig {
+		// bind all of the routing keys
+		for _, routingKey := range rConf.RoutingKeys {
+			if err = ch.QueueBind(queueName, routingKey, rConf.ExchangeName, false, nil); err != nil {
+				return failOnError(err, "Failed to bind a queue:"+queueName)
+			}
+		}
+	}
+
+	return c.startConsume(queueName, err, ch)
+}
+
+// setupExchangesAndQueues We don't use DeadLetter
 func (c Consumer) setupExchangesAndQueues(conn *amqp.Connection, ch *amqp.Channel) (<-chan amqp.Delivery, *amqp.Connection, *amqp.Channel, error) {
 	var err error
 	deadLetterExchangeName := c.QueueName + "-dead-letter"
@@ -146,7 +184,11 @@ func (c Consumer) setupExchangesAndQueues(conn *amqp.Connection, ch *amqp.Channe
 		}
 	}
 
-	msgs, err := ch.Consume(c.QueueName, c.Name(), false, false, false, false, nil)
+	return c.startConsume(c.QueueName, err, ch)
+}
+
+func (c Consumer) startConsume(queueName string, err error, ch *amqp.Channel) (<-chan amqp.Delivery, *amqp.Connection, *amqp.Channel, error) {
+	msgs, err := ch.Consume(queueName, c.Name(), false, false, false, false, nil)
 	if err != nil {
 		return failOnError(err, "Failed to register a consumer")
 	}
