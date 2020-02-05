@@ -17,7 +17,7 @@ RUN  go mod tidy \
      && go mod verify \
      && go mod vendor
 
-RUN go build -ldflags="-w -s" -o /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder
+RUN go build -ldflags="-w -s" -o /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder/rabbit-amazon-forwarder
 
 FROM alpine
 
@@ -29,9 +29,11 @@ ENV ENVIRONMENT="dev"
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=builder /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder /app/forwarder
+COPY --from=builder /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder/rabbit-amazon-forwarder /app/rabbit-amazon-forwarder
 COPY ./config /app/config
+
+RUN chmod +x /app/rabbit-amazon-forwarder
 
 USER appuser
 
-ENTRYPOINT ["/app/forwarder"]
+ENTRYPOINT ["/app/rabbit-amazon-forwarder"]
