@@ -2,12 +2,13 @@ package sns
 
 import (
 	"errors"
+
+	"github.com/AirHelp/rabbit-amazon-forwarder/connector"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/AirHelp/rabbit-amazon-forwarder/config"
 	"github.com/AirHelp/rabbit-amazon-forwarder/forwarder"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 )
@@ -30,7 +31,7 @@ func CreateForwarder(entry config.AmazonEntry, snsClient ...snsiface.SNSAPI) for
 	if len(snsClient) > 0 {
 		client = snsClient[0]
 	} else {
-		client = sns.New(session.Must(session.NewSession()))
+		client = sns.New(connector.CreateAWSSession())
 	}
 	forwarder := Forwarder{entry.Name, client, entry.Target}
 	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")

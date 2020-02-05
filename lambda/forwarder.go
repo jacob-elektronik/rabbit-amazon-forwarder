@@ -2,10 +2,11 @@ package lambda
 
 import (
 	"errors"
+
 	"github.com/AirHelp/rabbit-amazon-forwarder/config"
+	"github.com/AirHelp/rabbit-amazon-forwarder/connector"
 	"github.com/AirHelp/rabbit-amazon-forwarder/forwarder"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +30,7 @@ func CreateForwarder(entry config.AmazonEntry, lambdaClient ...lambdaiface.Lambd
 	if len(lambdaClient) > 0 {
 		client = lambdaClient[0]
 	} else {
-		client = lambda.New(session.Must(session.NewSession()))
+		client = lambda.New(connector.CreateAWSSession())
 	}
 	forwarder := Forwarder{entry.Name, client, entry.Target}
 	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")
