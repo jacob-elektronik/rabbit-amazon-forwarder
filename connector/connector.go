@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AirHelp/rabbit-amazon-forwarder/config"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/streadway/amqp"
@@ -141,7 +141,6 @@ func CreateConnector(connectionURL string) RabbitConnector {
 		return CreateBasicRabbitConnector()
 	}
 }
-
 
 func CreateAWSSession() (sess *session.Session) {
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {

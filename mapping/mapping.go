@@ -5,16 +5,16 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/AirHelp/rabbit-amazon-forwarder/connector"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/AirHelp/rabbit-amazon-forwarder/config"
-	"github.com/AirHelp/rabbit-amazon-forwarder/consumer"
-	"github.com/AirHelp/rabbit-amazon-forwarder/forwarder"
-	"github.com/AirHelp/rabbit-amazon-forwarder/lambda"
-	"github.com/AirHelp/rabbit-amazon-forwarder/rabbitmq"
-	"github.com/AirHelp/rabbit-amazon-forwarder/sns"
-	"github.com/AirHelp/rabbit-amazon-forwarder/sqs"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/consumer"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/lambda"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/rabbitmq"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/sns"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/sqs"
 )
 
 type pairs []pair

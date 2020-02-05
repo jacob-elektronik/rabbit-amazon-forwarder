@@ -5,8 +5,8 @@ FROM golang:1.13-alpine AS builder
 RUN apk add --no-cache curl git openssh \
  && adduser -D -g '' appuser
 
-COPY . /go/src/github.com/AirHelp/rabbit-amazon-forwarder
-WORKDIR /go/src/github.com/AirHelp/rabbit-amazon-forwarder
+COPY . /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder
+WORKDIR /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder
 
 ENV GO111MODULE=on
 ENV GOOS=linux
@@ -17,7 +17,7 @@ RUN  go mod tidy \
      && go mod verify \
      && go mod vendor
 
-RUN go build -ldflags="-w -s" -o /go/src/github.com/AirHelp/rabbit-amazon-forwarder/forwarder
+RUN go build -ldflags="-w -s" -o /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder
 
 FROM alpine
 
@@ -29,7 +29,7 @@ ENV ENVIRONMENT="dev"
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=builder /go/src/github.com/AirHelp/rabbit-amazon-forwarder/forwarder /app/forwarder
+COPY --from=builder /go/src/github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder /app/forwarder
 COPY ./config /app/config
 
 USER appuser
