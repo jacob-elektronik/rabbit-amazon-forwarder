@@ -26,10 +26,15 @@ func main() {
 		log.WithField("error", err.Error()).Fatal("Could not start supervisor")
 	}
 
-	basePath := os.Getenv("basePath")
+	basePath := os.Getenv("BASE_PATH")
 
+	log.Info(fmt.Sprintf("Starting http server with path %s/restart", basePath))
 	http.HandleFunc(fmt.Sprintf("%s/restart", basePath), supervisor.Restart)
+
+	log.Info(fmt.Sprintf("Starting http server with path %s/reload", basePath))
 	http.HandleFunc(fmt.Sprintf("%s/reload", basePath), supervisor.Reload)
+
+	log.Info(fmt.Sprintf("Starting http server with path %s/health", basePath))
 	http.HandleFunc(fmt.Sprintf("%s/health", basePath), supervisor.Check)
 
 	log.Info("Starting http server")
@@ -37,7 +42,7 @@ func main() {
 }
 
 func createLogger() {
-	log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 	if logLevel := os.Getenv(LogLevel); logLevel != "" {
