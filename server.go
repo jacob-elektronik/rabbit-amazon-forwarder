@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -25,9 +26,11 @@ func main() {
 		log.WithField("error", err.Error()).Fatal("Could not start supervisor")
 	}
 
-	http.HandleFunc("/restart", supervisor.Restart)
-	http.HandleFunc("/reload", supervisor.Reload)
-	http.HandleFunc("/health", supervisor.Check)
+	basePath := os.Getenv("basePath")
+
+	http.HandleFunc(fmt.Sprintf("%s/restart", basePath), supervisor.Restart)
+	http.HandleFunc(fmt.Sprintf("%s/reload", basePath), supervisor.Reload)
+	http.HandleFunc(fmt.Sprintf("%s/health", basePath), supervisor.Check)
 
 	log.Info("Starting http server")
 	log.Fatal(http.ListenAndServe(":8080", nil))

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	log "github.com/sirupsen/logrus"
 
@@ -67,7 +66,6 @@ func (c Client) Load() ([]ConsumerForwarderMapping, error) {
 	if err = json.Unmarshal(data, &pairsList); err != nil {
 		return consumerForwarderMapping, err
 	}
-	spew.Dump(pairsList)
 
 	log.Info("Loading consumer - forwarder pairs")
 	for _, pair := range pairsList {
