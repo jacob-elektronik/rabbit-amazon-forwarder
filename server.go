@@ -42,7 +42,7 @@ func main() {
 }
 
 func createLogger() {
-	log.SetFormatter(&log.TextFormatter{})
+	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 	if logLevel := os.Getenv(LogLevel); logLevel != "" {
