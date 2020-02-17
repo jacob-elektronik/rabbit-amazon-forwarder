@@ -2,10 +2,14 @@ package config
 
 const (
 	// MappingFile mapping file environment variable
-	MappingFile = "MAPPING_FILE"
-	CaCertFile  = "CA_CERT_FILE"
-	CertFile    = "CERT_FILE"
-	KeyFile     = "KEY_FILE"
+	MappingType     = "MAPPING_TYPE"
+	MappingFile     = "MAPPING_FILE"
+	MappingEndpoint = "MAPPING_ENDPOINT"
+	CaCertFile      = "CA_CERT_FILE"
+	CertFile        = "CERT_FILE"
+	KeyFile         = "KEY_FILE"
+	MappingTypeApi  = "api"
+	MappingTypeFile = "file"
 )
 
 // RabbitEntry RabbitMQ mapping entry

@@ -97,6 +97,24 @@ func (c *Client) Restart(w http.ResponseWriter, r *http.Request) {
 	successResponse(w)
 }
 
+// Restart restarts every consumer
+func (c *Client) Reload(w http.ResponseWriter, r *http.Request) {
+	consumerForwarderMapping, err := mapping.New().Load()
+	if err != nil {
+		log.WithField("error", err.Error()).Fatalf("Could not load consumer - forwarder pairs")
+		errorResponse(w, "Could not load consumer - forwarder pairs")
+
+	}
+	c.mappings = consumerForwarderMapping
+	c.stop()
+	if err := c.Start(); err != nil {
+		log.Error(err)
+		errorResponse(w, "")
+		return
+	}
+	successResponse(w)
+}
+
 func (c *Client) stop() {
 	for _, consumer := range c.consumers {
 		consumer.stop <- true

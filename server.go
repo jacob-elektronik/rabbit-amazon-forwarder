@@ -24,8 +24,11 @@ func main() {
 	if err := supervisor.Start(); err != nil {
 		log.WithField("error", err.Error()).Fatal("Could not start supervisor")
 	}
+
 	http.HandleFunc("/restart", supervisor.Restart)
+	http.HandleFunc("/reload", supervisor.Reload)
 	http.HandleFunc("/health", supervisor.Check)
+
 	log.Info("Starting http server")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
