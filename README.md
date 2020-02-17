@@ -53,6 +53,8 @@ export MAPPING_FILE=/config/mapping.json
 export AWS_REGION=region
 export AWS_ACCESS_KEY_ID=access_key
 export AWS_SECRET_ACCESS_KEY=secret_key
+export MappingType=file|api
+export MappingEndpoint=https://your.api.com/mappings
 ```
 
 #### Using TLS with rabbit
