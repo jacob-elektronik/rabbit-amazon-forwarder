@@ -3,8 +3,10 @@ package mapping
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"os"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	log "github.com/sirupsen/logrus"
 
@@ -56,7 +58,8 @@ func New(helpers ...Helper) Client {
 // Load loads mappings
 func (c Client) Load() ([]ConsumerForwarderMapping, error) {
 	var consumerForwarderMapping []ConsumerForwarderMapping
-	data, err := c.loadFile()
+
+	data, err := c.load()
 	if err != nil {
 		return consumerForwarderMapping, err
 	}
@@ -64,19 +67,53 @@ func (c Client) Load() ([]ConsumerForwarderMapping, error) {
 	if err = json.Unmarshal(data, &pairsList); err != nil {
 		return consumerForwarderMapping, err
 	}
+	spew.Dump(pairsList)
+
 	log.Info("Loading consumer - forwarder pairs")
 	for _, pair := range pairsList {
 		consumer := c.helper.createConsumer(pair.Source)
 		forwarder := c.helper.createForwarder(pair.Destination)
+
 		consumerForwarderMapping = append(consumerForwarderMapping, ConsumerForwarderMapping{consumer, forwarder})
 	}
 	return consumerForwarderMapping, nil
+}
+
+func (c Client) load() ([]byte, error) {
+
+	switch os.Getenv(config.MappingType) {
+	case config.MappingTypeApi:
+		log.Info("Api Load")
+
+		return c.loadApi()
+	case config.MappingTypeFile:
+		log.Info("File Load")
+
+		return c.loadFile()
+	default:
+		log.Info("Default Load")
+		return c.loadFile()
+	}
 }
 
 func (c Client) loadFile() ([]byte, error) {
 	filePath := os.Getenv(config.MappingFile)
 	log.WithField("mappingFile", filePath).Info("Loading mapping file")
 	return ioutil.ReadFile(filePath)
+}
+
+func (c Client) loadApi() ([]byte, error) {
+	url := os.Getenv(config.MappingEndpoint)
+	log.WithField("mappingFile", url).Info("Loading mappings from API")
+
+	var client http.Client
+	resp, err := client.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+
 }
 
 func (h helperImpl) createConsumer(entry config.RabbitEntry) consumer.Client {
