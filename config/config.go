@@ -8,6 +8,7 @@ const (
 	CaCertFile      = "CA_CERT_FILE"
 	CertFile        = "CERT_FILE"
 	KeyFile         = "KEY_FILE"
+	LogFormat       = "LOG_FORMAT"
 	MappingTypeApi  = "api"
 	MappingTypeFile = "file"
 )

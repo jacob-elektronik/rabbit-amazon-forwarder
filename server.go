@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/mapping"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/supervisor"
 	log "github.com/sirupsen/logrus"
@@ -42,7 +44,12 @@ func main() {
 }
 
 func createLogger() {
-	log.SetFormatter(&log.JSONFormatter{})
+	if strings.ToLower(os.Getenv(config.LogFormat)) == "text" {
+		log.SetFormatter(&log.TextFormatter{})
+	} else {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 	if logLevel := os.Getenv(LogLevel); logLevel != "" {

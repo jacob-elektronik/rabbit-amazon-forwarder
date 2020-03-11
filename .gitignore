@@ -3,3 +3,5 @@ test-sns.json
 rabbit-amazon-forwarder
 samples
 vendor/
+
+.air.conf

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	log "github.com/sirupsen/logrus"
 
@@ -72,7 +73,11 @@ func (c Client) Load() ([]ConsumerForwarderMapping, error) {
 		consumer := c.helper.createConsumer(pair.Source)
 		forwarder := c.helper.createForwarder(pair.Destination)
 
-		consumerForwarderMapping = append(consumerForwarderMapping, ConsumerForwarderMapping{consumer, forwarder})
+		if consumer != nil && forwarder != nil {
+			consumerForwarderMapping = append(consumerForwarderMapping, ConsumerForwarderMapping{consumer, forwarder})
+		} else {
+			log.Errorf("Consumer or forwarder configuration invalid. Config: %v", spew.Sdump(pair))
+		}
 	}
 	return consumerForwarderMapping, nil
 }
@@ -115,13 +120,24 @@ func (c Client) loadApi() ([]byte, error) {
 }
 
 func (h helperImpl) createConsumer(entry config.RabbitEntry) consumer.Client {
-	log.WithFields(log.Fields{
+
+	logging := log.WithFields(log.Fields{
 		"consumerType": entry.Type,
-		"consumerName": entry.Name}).Info("Creating consumer")
+		"consumerName": entry.Name})
+
+	logging.Info("Creating consumer")
 	switch entry.Type {
 	case rabbitmq.Type:
-		rabbitConnector := connector.CreateConnector(entry.ConnectionURL)
-		return rabbitmq.CreateConsumer(entry, rabbitConnector)
+		if entry.ConnectionURL != "" {
+			rabbitConnector := connector.CreateConnector(entry.ConnectionURL)
+			return rabbitmq.CreateConsumer(entry, rabbitConnector)
+		}
+		logging.Error("NO connection URL.")
+		return nil
+	default:
+		logging.Warnf("Invalid consumer type %s", entry.Type)
+		return nil
+
 	}
 	return nil
 }

@@ -71,6 +71,7 @@ func (c Consumer) Start(forwarder forwarder.Client, check chan bool, stop chan b
 	log.WithFields(log.Fields{
 		"exchangeName": c.ExchangeName,
 		"queueName":    c.QueueName}).Info("Starting connecting consumer")
+
 	for {
 		delivery, conn, ch, err := c.initRabbitMQ()
 		if err != nil {
