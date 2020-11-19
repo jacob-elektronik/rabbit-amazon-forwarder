@@ -214,7 +214,7 @@ func (c Consumer) startForwarding(params *workerParams) error {
 			if err != nil {
 				log.WithFields(log.Fields{
 					"forwarderName": forwarderName,
-					"error":         err.Error()}).Error("Could not reject message")
+					"error":         err.Error()}).Error("Could not extract span")
 				return err
 			}
 			span := opentracing.StartSpan("forward message", opentracing.ChildOf(spanCtx))
