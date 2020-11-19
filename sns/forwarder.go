@@ -3,14 +3,14 @@ package sns
 import (
 	"errors"
 
-	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -44,13 +44,21 @@ func (f Forwarder) Name() string {
 }
 
 // Push pushes message to forwarding infrastructure
-func (f Forwarder) Push(message string) error {
+func (f Forwarder) Push(span opentracing.Span, message string) error {
+	defer span.Finish()
 	if message == "" {
-		return errors.New(forwarder.EmptyMessageError)
+		err := errors.New(forwarder.EmptyMessageError)
+		span.SetTag("error", err)
+		return err
 	}
 	params := &sns.PublishInput{
 		Message:   aws.String(message),
 		TargetArn: aws.String(f.topic),
+	}
+	err := injectSpanContext(span, params)
+	if err != nil {
+		span.SetTag("error", err)
+		return err
 	}
 
 	resp, err := f.snsClient.Publish(params)

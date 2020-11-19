@@ -9,6 +9,7 @@ import (
 
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/mapping"
+	"github.com/opentracing/opentracing-go"
 )
 
 func TestStart(t *testing.T) {
@@ -141,7 +142,7 @@ func (f MockSNSForwarder) Name() string {
 	return f.name
 }
 
-func (f MockSNSForwarder) Push(message string) error {
+func (f MockSNSForwarder) Push(span opentracing.Span, message string) error {
 	return nil
 }
 
@@ -149,7 +150,7 @@ func (f MockSQSForwarder) Name() string {
 	return f.name
 }
 
-func (f MockSQSForwarder) Push(message string) error {
+func (f MockSQSForwarder) Push(span opentracing.Span, message string) error {
 	return nil
 }
 
@@ -157,6 +158,6 @@ func (f MockLambdaForwarder) Name() string {
 	return f.name
 }
 
-func (f MockLambdaForwarder) Push(message string) error {
+func (f MockLambdaForwarder) Push(span opentracing.Span, message string) error {
 	return nil
 }

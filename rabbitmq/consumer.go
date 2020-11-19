@@ -11,6 +11,7 @@ import (
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/consumer"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
 	"github.com/streadway/amqp"
 )
 
@@ -208,10 +209,23 @@ func (c Consumer) startForwarding(params *workerParams) error {
 				closeRabbitMQ(params.conn, params.ch)
 				return errors.New(channelClosedMessage)
 			}
+
+			spanCtx, err := extractSpanContext(d.Headers)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"forwarderName": forwarderName,
+					"error":         err.Error()}).Error("Could not reject message")
+				return err
+			}
+			span := opentracing.StartSpan("forward message", opentracing.ChildOf(spanCtx))
+			span.SetTag("consumer", c.Name())
+			span.SetTag("forwarder", params.forwarder.Name())
+
 			log.WithFields(log.Fields{
 				"consumerName": c.Name(),
 				"messageID":    d.MessageId}).Info("Message to forward")
-			err := params.forwarder.Push(string(d.Body))
+
+			err = params.forwarder.Push(span, string(d.Body))
 			if err != nil {
 				log.WithFields(log.Fields{
 					"forwarderName": forwarderName,

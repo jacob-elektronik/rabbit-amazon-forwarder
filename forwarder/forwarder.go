@@ -1,5 +1,7 @@
 package forwarder
 
+import "github.com/opentracing/opentracing-go"
+
 const (
 	// EmptyMessageError empty error message
 	EmptyMessageError = "message is empty"
@@ -8,5 +10,5 @@ const (
 // Client interface to forwarding messages
 type Client interface {
 	Name() string
-	Push(message string) error
+	Push(span opentracing.Span, message string) error
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
 )
 
 var badRequest = "Bad request"
@@ -62,7 +63,7 @@ func TestPush(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Log("Scenario name: ", scenario.name)
 		forwarder := CreateForwarder(entry, scenario.mock)
-		err := forwarder.Push(scenario.message)
+		err := forwarder.Push(opentracing.GlobalTracer().StartSpan(scenario.name), scenario.message)
 		if scenario.err == nil && err != nil {
 			t.Errorf("Error should not occur")
 			return

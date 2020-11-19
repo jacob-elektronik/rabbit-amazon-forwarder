@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
 )
 
 const (
@@ -44,17 +45,24 @@ func (f Forwarder) Name() string {
 }
 
 // Push pushes message to forwarding infrastructure
-func (f Forwarder) Push(message string) error {
+func (f Forwarder) Push(span opentracing.Span, message string) error {
+	defer span.Finish()
 	if message == "" {
-		return errors.New(forwarder.EmptyMessageError)
+		err := errors.New(forwarder.EmptyMessageError)
+		span.SetTag("error", err)
+		return err
 	}
 	params := &sqs.SendMessageInput{
 		MessageBody: aws.String(message), // Required
 		QueueUrl:    aws.String(f.queue), // Required
 	}
+	err := injectSpanContext(span, params)
+	if err != nil {
+		span.SetTag("error", err)
+		return err
+	}
 
 	resp, err := f.sqsClient.SendMessage(params)
-
 	if err != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),

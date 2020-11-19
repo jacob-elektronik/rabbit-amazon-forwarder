@@ -1,6 +1,7 @@
 package lambda
 
 import (
+	"context"
 	"errors"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,6 +10,7 @@ import (
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,9 +34,9 @@ func CreateForwarder(entry config.AmazonEntry, lambdaClient ...lambdaiface.Lambd
 	} else {
 		client = lambda.New(connector.CreateAWSSession())
 	}
-	forwarder := Forwarder{entry.Name, client, entry.Target}
-	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")
-	return forwarder
+	f := Forwarder{entry.Name, client, entry.Target}
+	log.WithField("forwarderName", f.Name()).Info("Created forwarder")
+	return f
 }
 
 // Name forwarder name
@@ -43,15 +45,20 @@ func (f Forwarder) Name() string {
 }
 
 // Push pushes message to forwarding infrastructure
-func (f Forwarder) Push(message string) error {
+func (f Forwarder) Push(span opentracing.Span, message string) error {
+	defer span.Finish()
 	if message == "" {
-		return errors.New(forwarder.EmptyMessageError)
+		err := errors.New(forwarder.EmptyMessageError)
+		span.SetTag("error", err)
+		return err
 	}
+
+	ctx := context.WithValue(context.Background(), "span-context", span.Context())
 	params := &lambda.InvokeInput{
 		FunctionName: aws.String(f.function),
 		Payload:      []byte(message),
 	}
-	resp, err := f.lambdaClient.Invoke(params)
+	resp, err := f.lambdaClient.InvokeWithContext(ctx, params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
