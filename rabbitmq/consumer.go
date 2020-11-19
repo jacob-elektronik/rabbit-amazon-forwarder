@@ -221,7 +221,7 @@ func (c Consumer) startForwarding(params *workerParams) error {
 					"error":         err.Error()}).Error("Could not extract span")
 				return err
 			}
-			span := opentracing.StartSpan("forward message", opentracing.ChildOf(spanCtx))
+			span := opentracing.StartSpan("forward message", opentracing.FollowsFrom(spanCtx))
 			span.SetTag("consumer", c.Name())
 			span.SetTag("forwarder", params.forwarder.Name())
 
