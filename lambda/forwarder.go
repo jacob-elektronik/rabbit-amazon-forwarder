@@ -53,7 +53,7 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		return err
 	}
 
-	ctx := context.WithValue(context.Background(), "span-context", span.Context())
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
 	params := &lambda.InvokeInput{
 		FunctionName: aws.String(f.function),
 		Payload:      []byte(message),
