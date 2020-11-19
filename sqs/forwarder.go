@@ -34,9 +34,9 @@ func CreateForwarder(entry config.AmazonEntry, sqsClient ...sqsiface.SQSAPI) for
 	} else {
 		client = sqs.New(connector.CreateAWSSession())
 	}
-	forwarder := Forwarder{entry.Name, client, entry.Target}
-	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")
-	return forwarder
+	f := Forwarder{entry.Name, client, entry.Target}
+	log.WithField("forwarderName", f.Name()).Info("Created forwarder")
+	return f
 }
 
 // Name forwarder name
@@ -46,10 +46,9 @@ func (f Forwarder) Name() string {
 
 // Push pushes message to forwarding infrastructure
 func (f Forwarder) Push(span opentracing.Span, message string) error {
-	defer span.Finish()
 	if message == "" {
 		err := errors.New(forwarder.EmptyMessageError)
-		span.SetTag("error", err)
+		span.SetTag("error", err.Error())
 		return err
 	}
 	params := &sqs.SendMessageInput{
@@ -58,7 +57,7 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 	}
 	err := injectSpanContext(span, params)
 	if err != nil {
-		span.SetTag("error", err)
+		span.SetTag("error", err.Error())
 		return err
 	}
 
@@ -67,6 +66,7 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
 			"error":         err.Error()}).Error("Could not forward message")
+		span.SetTag("error", err.Error())
 		return err
 	}
 	log.WithFields(log.Fields{

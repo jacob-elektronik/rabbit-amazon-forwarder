@@ -46,10 +46,9 @@ func (f Forwarder) Name() string {
 
 // Push pushes message to forwarding infrastructure
 func (f Forwarder) Push(span opentracing.Span, message string) error {
-	defer span.Finish()
 	if message == "" {
 		err := errors.New(forwarder.EmptyMessageError)
-		span.SetTag("error", err)
+		span.SetTag("error", err.Error())
 		return err
 	}
 
@@ -63,13 +62,15 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
 			"error":         err.Error()}).Error("Could not forward message")
+		span.SetTag("error", err.Error())
 		return err
 	}
 	if resp.FunctionError != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
 			"functionError": *resp.FunctionError}).Errorf("Could not forward message")
-		return errors.New(*resp.FunctionError)
+		span.SetTag("error", *resp.FunctionError)
+		return err
 	}
 	log.WithFields(log.Fields{
 		"forwarderName": f.Name(),

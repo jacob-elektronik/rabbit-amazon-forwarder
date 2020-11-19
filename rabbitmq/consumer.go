@@ -210,6 +210,10 @@ func (c Consumer) startForwarding(params *workerParams) error {
 				return errors.New(channelClosedMessage)
 			}
 
+			log.WithFields(log.Fields{
+				"consumerName": c.Name(),
+				"messageID":    d.MessageId}).Info("Message to forward")
+
 			spanCtx, err := extractSpanContext(d.Headers)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -221,11 +225,8 @@ func (c Consumer) startForwarding(params *workerParams) error {
 			span.SetTag("consumer", c.Name())
 			span.SetTag("forwarder", params.forwarder.Name())
 
-			log.WithFields(log.Fields{
-				"consumerName": c.Name(),
-				"messageID":    d.MessageId}).Info("Message to forward")
-
 			err = params.forwarder.Push(span, string(d.Body))
+			span.Finish()
 			if err != nil {
 				log.WithFields(log.Fields{
 					"forwarderName": forwarderName,
@@ -236,7 +237,6 @@ func (c Consumer) startForwarding(params *workerParams) error {
 						"error":         err.Error()}).Error("Could not reject message")
 					return err
 				}
-
 			} else {
 				if err := d.Ack(true); err != nil {
 					log.WithFields(log.Fields{
