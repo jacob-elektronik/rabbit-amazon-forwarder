@@ -48,7 +48,6 @@ func (f Forwarder) Name() string {
 func (f Forwarder) Push(span opentracing.Span, message string) error {
 	if message == "" {
 		err := errors.New(forwarder.EmptyMessageError)
-		span.SetTag("error", err.Error())
 		return err
 	}
 	params := &sqs.SendMessageInput{
@@ -57,8 +56,9 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 	}
 	err := injectSpanContext(span, params)
 	if err != nil {
-		span.SetTag("error", err.Error())
-		return err
+		log.WithFields(log.Fields{
+			"forwarderName": f.Name(),
+			"error":         err.Error()}).Error("Could not inject span context into SQS message attributes")
 	}
 
 	resp, err := f.sqsClient.SendMessage(params)
@@ -66,7 +66,6 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
 			"error":         err.Error()}).Error("Could not forward message")
-		span.SetTag("error", err.Error())
 		return err
 	}
 	log.WithFields(log.Fields{

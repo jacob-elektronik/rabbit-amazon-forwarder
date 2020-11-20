@@ -214,16 +214,18 @@ func (c Consumer) startForwarding(params *workerParams) error {
 				"consumerName": c.Name(),
 				"messageID":    d.MessageId}).Info("Message to forward")
 
+			var span opentracing.Span
 			spanCtx, err := extractSpanContext(d.Headers)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"forwarderName": forwarderName,
-					"error":         err.Error()}).Error("Could not extract span")
-				return err
+					"error":         err.Error()}).Error("Could not extract span context from message")
 			}
-			span := opentracing.StartSpan("forward message", opentracing.FollowsFrom(spanCtx))
-			span.SetTag("consumer", c.Name())
-			span.SetTag("forwarder", params.forwarder.Name())
+			if spanCtx != nil {
+				span = opentracing.StartSpan("forward message", opentracing.FollowsFrom(spanCtx))
+				span.SetTag("consumer", c.Name())
+				span.SetTag("forwarder", params.forwarder.Name())
+			}
 
 			err = params.forwarder.Push(span, string(d.Body))
 			span.Finish()

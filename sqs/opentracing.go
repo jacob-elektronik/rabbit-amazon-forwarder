@@ -26,6 +26,9 @@ func (c sqsAttributeCarrier) Set(key, val string) {
 }
 
 func injectSpanContext(span opentracing.Span, pubInput *sqs.SendMessageInput) error {
+	if span == nil {
+		return nil
+	}
 	c := sqsAttributeCarrier(pubInput.MessageAttributes)
 	return span.Tracer().Inject(span.Context(), opentracing.TextMap, c)
 }

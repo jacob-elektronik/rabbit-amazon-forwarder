@@ -73,7 +73,7 @@ func initJaeger(service string, debug bool) (opentracing.Tracer, io.Closer) {
 	// see https://github.com/jaegertracing/jaeger-client-go#environment-variables
 	cfg, err := jaegerConfig.FromEnv()
 	if err != nil {
-		log.WithField("error", err).Fatal("cannot init Jaeger")
+		log.WithField("error", err).Fatal("cannot create Jaeger config from environment")
 	}
 
 	tracer, closer, err := cfg.NewTracer(
