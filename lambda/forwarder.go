@@ -1,7 +1,6 @@
 package lambda
 
 import (
-	"context"
 	"errors"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -47,16 +46,21 @@ func (f Forwarder) Name() string {
 // Push pushes message to forwarding infrastructure
 func (f Forwarder) Push(span opentracing.Span, message string) error {
 	if message == "" {
-		err := errors.New(forwarder.EmptyMessageError)
-		return err
+		return errors.New(forwarder.EmptyMessageError)
 	}
 
-	ctx := opentracing.ContextWithSpan(context.Background(), span)
 	params := &lambda.InvokeInput{
 		FunctionName: aws.String(f.function),
 		Payload:      []byte(message),
 	}
-	resp, err := f.lambdaClient.InvokeWithContext(ctx, params)
+	err := injectSpanContext(span, params)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"forwarderName": f.Name(),
+			"error":         err.Error()}).Error("Could not inject span context")
+	}
+
+	resp, err := f.lambdaClient.Invoke(params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
@@ -66,7 +70,7 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 	if resp.FunctionError != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
-			"functionError": *resp.FunctionError}).Errorf("Could not forward message")
+			"functionError": *resp.FunctionError}).Error("Could not forward message")
 		return err
 	}
 	log.WithFields(log.Fields{

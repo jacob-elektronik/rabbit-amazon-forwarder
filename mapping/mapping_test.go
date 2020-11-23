@@ -41,7 +41,7 @@ func TestLoadFile(t *testing.T) {
 		t.Errorf("could not load file: %s", err.Error())
 	}
 	if len(data) < 1 {
-		t.Errorf("could not load file: empty steam found")
+		t.Error("could not load file: empty steam found")
 	}
 }
 
@@ -60,7 +60,7 @@ func TestCreateConsumer(t *testing.T) {
 	}
 	rabbitConsumer := consumer.(rabbitmq.Consumer)
 	if rabbitConsumer.RabbitConnector == nil {
-		t.Errorf("rabbit consumer should have been set")
+		t.Error("rabbit consumer should have been set")
 	}
 }
 

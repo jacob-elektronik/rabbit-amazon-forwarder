@@ -65,7 +65,7 @@ func TestPush(t *testing.T) {
 		forwarder := CreateForwarder(entry, scenario.mock)
 		err := forwarder.Push(opentracing.GlobalTracer().StartSpan(scenario.name), scenario.message)
 		if scenario.err == nil && err != nil {
-			t.Errorf("Error should not occur")
+			t.Error("Error should not occur")
 			return
 		}
 		if scenario.err == err {
