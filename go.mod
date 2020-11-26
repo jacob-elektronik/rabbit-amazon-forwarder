@@ -16,5 +16,3 @@ require (
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 )
-
-replace github.com/fdegner/go-spanctx => /home/fd/data/github/fdegner/go-spanctx
