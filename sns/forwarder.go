@@ -54,11 +54,14 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		Message:   aws.String(message),
 		TargetArn: aws.String(f.topic),
 	}
-	err := spanctx.AddToSNSPublishInput(span.Context(), params)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"forwarderName": f.Name(),
-			"error":         err.Error()}).Error("Could not inject span context into SNS message attributes")
+
+	if span != nil {
+		err := spanctx.AddToSNSPublishInput(span.Context(), params)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"forwarderName": f.Name(),
+				"error":         err.Error()}).Error("Could not inject span context into SNS message attributes")
+		}
 	}
 
 	resp, err := f.snsClient.Publish(params)

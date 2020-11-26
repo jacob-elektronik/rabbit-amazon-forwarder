@@ -54,11 +54,14 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		FunctionName: aws.String(f.function),
 		Payload:      []byte(message),
 	}
-	err := spanctx.AddToLambdaInvokeInput(span.Context(), params)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"forwarderName": f.Name(),
-			"error":         err.Error()}).Error("Could not inject span context")
+
+	if span != nil {
+		err := spanctx.AddToLambdaInvokeInput(span.Context(), params)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"forwarderName": f.Name(),
+				"error":         err.Error()}).Error("Could not inject span context")
+		}
 	}
 
 	resp, err := f.lambdaClient.Invoke(params)
@@ -72,7 +75,7 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
 			"functionError": *resp.FunctionError}).Error("Could not forward message")
-		return err
+		return errors.New(*resp.FunctionError)
 	}
 	log.WithFields(log.Fields{
 		"forwarderName": f.Name(),

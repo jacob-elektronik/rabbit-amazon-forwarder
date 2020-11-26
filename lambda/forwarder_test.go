@@ -4,15 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"context"
-
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
-	"github.com/opentracing/opentracing-go"
+	jaegerConfig "github.com/uber/jaeger-client-go/config"
 )
 
 const (
@@ -26,9 +23,9 @@ func TestCreateForwarder(t *testing.T) {
 		Name:   "lambda-test",
 		Target: "function1-test",
 	}
-	forwarder := CreateForwarder(entry)
-	if forwarder.Name() != entry.Name {
-		t.Errorf("wrong forwarder name, expected:%s, found: %s", entry.Name, forwarder.Name())
+	f := CreateForwarder(entry)
+	if f.Name() != entry.Name {
+		t.Errorf("wrong forwarder name, expected:%s, found: %s", entry.Name, f.Name())
 	}
 }
 
@@ -81,10 +78,27 @@ func TestPush(t *testing.T) {
 			err:      nil,
 		},
 	}
+
+	jaegerCfg, err := jaegerConfig.FromEnv()
+	if err != nil {
+		panic(err)
+	}
+	jaegerCfg.ServiceName = "test"
+	tracer, closer, err := jaegerCfg.NewTracer()
+	if err != nil {
+		panic(err)
+	}
+	defer closer.Close()
+
 	for _, scenario := range scenarios {
 		t.Log("Scenario name: ", scenario.name)
 		forwarder := CreateForwarder(entry, scenario.mock)
-		err := forwarder.Push(opentracing.GlobalTracer().StartSpan(scenario.name), scenario.message)
+
+		span := tracer.StartSpan(scenario.name)
+		err := forwarder.Push(span, scenario.message)
+		span.Finish()
+
+		err = forwarder.Push(nil, scenario.message)
 		if scenario.err == nil && err != nil {
 			t.Errorf("Error should not occur. Error: %s", err.Error())
 			return
@@ -109,7 +123,7 @@ type mockAmazonLambda struct {
 	message  string
 }
 
-func (m mockAmazonLambda) InvokeWithContext(ctx context.Context, input *lambda.InvokeInput, opts ...request.Option) (*lambda.InvokeOutput, error) {
+func (m mockAmazonLambda) Invoke(input *lambda.InvokeInput) (*lambda.InvokeOutput, error) {
 	if *input.FunctionName != m.function {
 		return nil, errors.New("Wrong function name")
 	}

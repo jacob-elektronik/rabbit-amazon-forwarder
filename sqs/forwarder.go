@@ -48,18 +48,20 @@ func (f Forwarder) Name() string {
 // Push pushes message to forwarding infrastructure
 func (f Forwarder) Push(span opentracing.Span, message string) error {
 	if message == "" {
-		err := errors.New(forwarder.EmptyMessageError)
-		return err
+		return errors.New(forwarder.EmptyMessageError)
 	}
 	params := &sqs.SendMessageInput{
 		MessageBody: aws.String(message), // Required
 		QueueUrl:    aws.String(f.queue), // Required
 	}
-	err := spanctx.AddToSQSMessageInput(span.Context(), params)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"forwarderName": f.Name(),
-			"error":         err.Error()}).Error("Could not inject span context into SQS message attributes")
+
+	if span != nil {
+		err := spanctx.AddToSQSMessageInput(span.Context(), params)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"forwarderName": f.Name(),
+				"error":         err.Error()}).Error("Could not inject span context into SQS message attributes")
+		}
 	}
 
 	resp, err := f.sqsClient.SendMessage(params)
