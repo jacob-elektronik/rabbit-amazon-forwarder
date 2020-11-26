@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/fdegner/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/consumer"
@@ -215,7 +216,7 @@ func (c Consumer) startForwarding(params *workerParams) error {
 				"messageID":    d.MessageId}).Info("Message to forward")
 
 			var span opentracing.Span
-			spanCtx, err := extractSpanContext(d.Headers)
+			spanCtx, err := spanctx.GetFromAMQPDelivery(d)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"forwarderName": forwarderName,

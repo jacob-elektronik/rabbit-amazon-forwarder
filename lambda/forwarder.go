@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
+	"github.com/fdegner/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
@@ -53,7 +54,7 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		FunctionName: aws.String(f.function),
 		Payload:      []byte(message),
 	}
-	err := injectSpanContext(span, params)
+	err := spanctx.AddToLambdaInvokeInput(span.Context(), params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),

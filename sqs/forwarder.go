@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/fdegner/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
 	"github.com/opentracing/opentracing-go"
@@ -54,7 +55,7 @@ func (f Forwarder) Push(span opentracing.Span, message string) error {
 		MessageBody: aws.String(message), // Required
 		QueueUrl:    aws.String(f.queue), // Required
 	}
-	err := injectSpanContext(span, params)
+	err := spanctx.AddToSQSMessageInput(span.Context(), params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
