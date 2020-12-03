@@ -7,7 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/fdegner/go-spanctx"
+	"github.com/jacob-elektronik/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/consumer"
