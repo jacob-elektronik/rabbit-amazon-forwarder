@@ -6,10 +6,17 @@ import (
 	"os"
 	"strings"
 
+	"io"
+
+	"io/ioutil"
+
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/mapping"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/supervisor"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
+	"github.com/uber/jaeger-client-go"
+	jaegerConfig "github.com/uber/jaeger-client-go/config"
 )
 
 const (
@@ -18,6 +25,9 @@ const (
 
 func main() {
 	createLogger()
+
+	_, closer := initJaeger()
+	defer closer.Close()
 
 	consumerForwarderMapping, err := mapping.New().Load()
 	if err != nil {
@@ -59,4 +69,24 @@ func createLogger() {
 			log.SetLevel(level)
 		}
 	}
+}
+
+func initJaeger() (opentracing.Tracer, io.Closer) {
+	// see https://github.com/jaegertracing/jaeger-client-go#environment-variables
+	cfg, err := jaegerConfig.FromEnv()
+	if err != nil {
+		log.WithField("error", err).Error("cannot create Jaeger config from environment, using a dummy tracer instead")
+		return nil, ioutil.NopCloser(nil)
+	}
+
+	tracer, closer, err := cfg.NewTracer(
+		jaegerConfig.Logger(jaeger.StdLogger),
+	)
+	if err != nil {
+		log.WithField("error", err).Error("cannot init Jaeger, using a dummy tracer instead")
+		return nil, ioutil.NopCloser(nil)
+	}
+
+	opentracing.SetGlobalTracer(tracer)
+	return tracer, closer
 }

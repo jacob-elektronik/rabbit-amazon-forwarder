@@ -12,6 +12,7 @@ import (
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/rabbitmq"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/sns"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/sqs"
+	"github.com/opentracing/opentracing-go"
 )
 
 const (
@@ -40,7 +41,7 @@ func TestLoadFile(t *testing.T) {
 		t.Errorf("could not load file: %s", err.Error())
 	}
 	if len(data) < 1 {
-		t.Errorf("could not load file: empty steam found")
+		t.Error("could not load file: empty steam found")
 	}
 }
 
@@ -59,7 +60,7 @@ func TestCreateConsumer(t *testing.T) {
 	}
 	rabbitConsumer := consumer.(rabbitmq.Consumer)
 	if rabbitConsumer.RabbitConnector == nil {
-		t.Errorf("rabbit consumer should have been set")
+		t.Error("rabbit consumer should have been set")
 	}
 }
 
@@ -151,7 +152,7 @@ func (f MockSNSForwarder) Name() string {
 	return f.name
 }
 
-func (f MockSNSForwarder) Push(message string) error {
+func (f MockSNSForwarder) Push(span opentracing.Span, message string) error {
 	return nil
 }
 
@@ -159,7 +160,7 @@ func (f MockSQSForwarder) Name() string {
 	return f.name
 }
 
-func (f MockLambdaForwarder) Push(message string) error {
+func (f MockLambdaForwarder) Push(span opentracing.Span, message string) error {
 	return nil
 }
 
@@ -167,7 +168,7 @@ func (f MockLambdaForwarder) Name() string {
 	return f.name
 }
 
-func (f MockSQSForwarder) Push(message string) error {
+func (f MockSQSForwarder) Push(span opentracing.Span, message string) error {
 	return nil
 }
 
@@ -175,6 +176,6 @@ func (f ErrorForwarder) Name() string {
 	return "error-forwarder"
 }
 
-func (f ErrorForwarder) Push(message string) error {
+func (f ErrorForwarder) Push(span opentracing.Span, message string) error {
 	return errors.New("Wrong forwader created")
 }

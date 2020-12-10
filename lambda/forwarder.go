@@ -6,9 +6,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
+	"github.com/jacob-elektronik/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,9 +34,9 @@ func CreateForwarder(entry config.AmazonEntry, lambdaClient ...lambdaiface.Lambd
 	} else {
 		client = lambda.New(connector.CreateAWSSession())
 	}
-	forwarder := Forwarder{entry.Name, client, entry.Target}
-	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")
-	return forwarder
+	f := Forwarder{entry.Name, client, entry.Target}
+	log.WithField("forwarderName", f.Name()).Info("Created forwarder")
+	return f
 }
 
 // Name forwarder name
@@ -43,14 +45,25 @@ func (f Forwarder) Name() string {
 }
 
 // Push pushes message to forwarding infrastructure
-func (f Forwarder) Push(message string) error {
+func (f Forwarder) Push(span opentracing.Span, message string) error {
 	if message == "" {
 		return errors.New(forwarder.EmptyMessageError)
 	}
+
 	params := &lambda.InvokeInput{
 		FunctionName: aws.String(f.function),
 		Payload:      []byte(message),
 	}
+
+	if span != nil {
+		err := spanctx.AddToLambdaInvokeInput(span.Context(), params)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"forwarderName": f.Name(),
+				"error":         err.Error()}).Error("Could not inject span context")
+		}
+	}
+
 	resp, err := f.lambdaClient.Invoke(params)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -61,7 +74,7 @@ func (f Forwarder) Push(message string) error {
 	if resp.FunctionError != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),
-			"functionError": *resp.FunctionError}).Errorf("Could not forward message")
+			"functionError": *resp.FunctionError}).Error("Could not forward message")
 		return errors.New(*resp.FunctionError)
 	}
 	log.WithFields(log.Fields{

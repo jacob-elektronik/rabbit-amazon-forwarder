@@ -3,14 +3,15 @@ package sns
 import (
 	"errors"
 
-	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/jacob-elektronik/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
+	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -33,9 +34,9 @@ func CreateForwarder(entry config.AmazonEntry, snsClient ...snsiface.SNSAPI) for
 	} else {
 		client = sns.New(connector.CreateAWSSession())
 	}
-	forwarder := Forwarder{entry.Name, client, entry.Target}
-	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")
-	return forwarder
+	f := Forwarder{entry.Name, client, entry.Target}
+	log.WithField("forwarderName", f.Name()).Info("Created forwarder")
+	return f
 }
 
 // Name forwarder name
@@ -44,13 +45,23 @@ func (f Forwarder) Name() string {
 }
 
 // Push pushes message to forwarding infrastructure
-func (f Forwarder) Push(message string) error {
+func (f Forwarder) Push(span opentracing.Span, message string) error {
 	if message == "" {
-		return errors.New(forwarder.EmptyMessageError)
+		err := errors.New(forwarder.EmptyMessageError)
+		return err
 	}
 	params := &sns.PublishInput{
 		Message:   aws.String(message),
 		TargetArn: aws.String(f.topic),
+	}
+
+	if span != nil {
+		err := spanctx.AddToSNSPublishInput(span.Context(), params)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"forwarderName": f.Name(),
+				"error":         err.Error()}).Error("Could not inject span context into SNS message attributes")
+		}
 	}
 
 	resp, err := f.snsClient.Publish(params)

@@ -9,8 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/jacob-elektronik/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
 )
 
 const (
@@ -33,9 +35,9 @@ func CreateForwarder(entry config.AmazonEntry, sqsClient ...sqsiface.SQSAPI) for
 	} else {
 		client = sqs.New(connector.CreateAWSSession())
 	}
-	forwarder := Forwarder{entry.Name, client, entry.Target}
-	log.WithField("forwarderName", forwarder.Name()).Info("Created forwarder")
-	return forwarder
+	f := Forwarder{entry.Name, client, entry.Target}
+	log.WithField("forwarderName", f.Name()).Info("Created forwarder")
+	return f
 }
 
 // Name forwarder name
@@ -44,7 +46,7 @@ func (f Forwarder) Name() string {
 }
 
 // Push pushes message to forwarding infrastructure
-func (f Forwarder) Push(message string) error {
+func (f Forwarder) Push(span opentracing.Span, message string) error {
 	if message == "" {
 		return errors.New(forwarder.EmptyMessageError)
 	}
@@ -53,8 +55,16 @@ func (f Forwarder) Push(message string) error {
 		QueueUrl:    aws.String(f.queue), // Required
 	}
 
-	resp, err := f.sqsClient.SendMessage(params)
+	if span != nil {
+		err := spanctx.AddToSQSMessageInput(span.Context(), params)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"forwarderName": f.Name(),
+				"error":         err.Error()}).Error("Could not inject span context into SQS message attributes")
+		}
+	}
 
+	resp, err := f.sqsClient.SendMessage(params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"forwarderName": f.Name(),

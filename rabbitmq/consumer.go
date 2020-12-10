@@ -7,10 +7,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jacob-elektronik/go-spanctx"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/config"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/connector"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/consumer"
 	"github.com/jacob-elektronik/rabbit-amazon-forwarder/forwarder"
+	"github.com/opentracing/opentracing-go"
 	"github.com/streadway/amqp"
 )
 
@@ -208,10 +210,26 @@ func (c Consumer) startForwarding(params *workerParams) error {
 				closeRabbitMQ(params.conn, params.ch)
 				return errors.New(channelClosedMessage)
 			}
+
 			log.WithFields(log.Fields{
 				"consumerName": c.Name(),
 				"messageID":    d.MessageId}).Info("Message to forward")
-			err := params.forwarder.Push(string(d.Body))
+
+			var span opentracing.Span
+			spanCtx, err := spanctx.GetFromAMQPDelivery(d)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"forwarderName": forwarderName,
+					"error":         err.Error()}).Error("Could not extract span context from message")
+			}
+			if spanCtx != nil {
+				span = opentracing.StartSpan("forward message", opentracing.FollowsFrom(spanCtx))
+				span.SetTag("consumer", c.Name())
+				span.SetTag("forwarder", params.forwarder.Name())
+			}
+
+			err = params.forwarder.Push(span, string(d.Body))
+			span.Finish()
 			if err != nil {
 				log.WithFields(log.Fields{
 					"forwarderName": forwarderName,
@@ -222,7 +240,6 @@ func (c Consumer) startForwarding(params *workerParams) error {
 						"error":         err.Error()}).Error("Could not reject message")
 					return err
 				}
-
 			} else {
 				if err := d.Ack(true); err != nil {
 					log.WithFields(log.Fields{
