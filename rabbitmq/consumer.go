@@ -229,7 +229,9 @@ func (c Consumer) startForwarding(params *workerParams) error {
 			}
 
 			err = params.forwarder.Push(span, string(d.Body))
-			span.Finish()
+			if span != nil {
+				span.Finish()
+			}
 			if err != nil {
 				log.WithFields(log.Fields{
 					"forwarderName": forwarderName,
